@@ -3,7 +3,7 @@ from typing import Union, List
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text, insert, delete
 from sqlalchemy.orm import Session
-from database.models5 import *
+from database.models6 import *
 from apps.tools import *
 
 student_urls = APIRouter()
@@ -39,7 +39,7 @@ def search_course_info(cno: Union[str, None] = None, cname: Union[str, None] = N
 @student_urls.get('/get_schedule', summary='get schedule(selected_course_now)')
 def get_schedule(sno: Union[str, None] = None):
     if sno is None:
-        return {}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(Student.student_id).where(Student.student_id == sno)
         student_exists = query.all()
@@ -64,7 +64,7 @@ def get_schedule(sno: Union[str, None] = None):
 @student_urls.get('/get_finished', summary='get finished(ended_course)')
 def get_finished(sno: Union[str, None] = None):
     if sno is None:
-        return {}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(Student.student_id).where(Student.student_id == sno)
         student_exists = query.all()
@@ -85,47 +85,18 @@ def get_finished(sno: Union[str, None] = None):
         return ret_json
 
 
-@student_urls.get('/get_score/{mode}', summary='get score(ended_course)')
-def get_score(mode: str, sno: Union[str, None] = None, sms: Union[str, None] = None):
+@student_urls.get('/get_score', summary='get score(ended_course)')
+def get_score(sno: Union[str, None] = None):
     if sno is None:
-        return {}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(Student.student_id).where(Student.student_id == sno)
         student_exists = query.all()
         if len(student_exists) == 0:
             return {'msg': 'Student does not exist.'}
-    if mode == 'all':
-        with engine.connect() as conn:
-            query = f"""select
-sum(credit * total_score) / sum(credit) as avg_gpa
-from ended_course
-inner join all_course on all_course.course_id = ended_course.course_id
-inner join staff on staff.staff_id = ended_course.staff_id
-where ended_course.student_id = \'{sno}\'
-            """
-            query = text(query)
-            ret = conn.execute(query).all()
-            return {'sc': ret[0][0]}
+        query = conn.query(Student.gpa_total, Student.gpa_this).where(get_where_conditions(Student.__table__.columns.values(), sno))
+    return {'gpa_this': query.all()[0][1], 'gpa_total': query.all()[0][0]}
 
-    elif mode == 'this':
-        with Session(bind=engine) as conn:
-            query = conn.query(EndedCourse.course_id).where(EndedCourse.semester == sms)
-            semester_exists = query.all()
-            if len(semester_exists) == 0:
-                return {'msg': 'Semester not recorded.'}
-        if sms is None:
-            return {}
-        with engine.connect() as conn:
-            query = f"""select
-sum(credit * total_score) / sum(credit) as avg_gpa
-from ended_course
-inner join all_course on all_course.course_id = ended_course.course_id
-inner join staff on staff.staff_id = ended_course.staff_id
-where ended_course.student_id = \'{sno}\'
-and ended_course.semester = \'{sms}\' """
-            query = text(query)
-            ret = conn.execute(query).all()
-            return {'sc': ret[0][0]}
 
 
 # @student_urls.get('/get_score/{mode}', summary='get score')
@@ -188,7 +159,7 @@ class CourseInfo(BaseModel):
 @student_urls.post('/insert_course', summary='insert course(change selected_course_now)')
 def insert_course(course_info: CourseInfo, sno: Union[str, None] = None):
     if sno is None:
-        return {}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(AvailableCourse.course_id).where(
             AvailableCourse.course_id == course_info.course_id and AvailableCourse.staff_id == course_info.staff_id

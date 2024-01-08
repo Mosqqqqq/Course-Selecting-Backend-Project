@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy import create_engine, update, delete, insert
 from sqlalchemy.orm import Session
-from database.models5 import *
+from database.models6 import *
 from apps.tools import *
 from apps.root.updateinfo_root import *
 

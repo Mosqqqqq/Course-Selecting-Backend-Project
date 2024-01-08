@@ -3,7 +3,7 @@ from typing import Union, List
 from pydantic import BaseModel
 from sqlalchemy import create_engine, update
 from sqlalchemy.orm import Session
-from database.models5 import *
+from database.models6 import *
 from apps.tools import *
 
 staff_urls = APIRouter()
@@ -13,7 +13,7 @@ engine = create_engine(url='mysql://root:zsqlmm@localhost/my_school')
 @staff_urls.get('/search_course_finished', summary='search finished course(ended_course)')
 def search_course_finished(staff_id: Union[str, None] = None):
     if staff_id is None:
-        return {'msg': 'staff_id can not be None type.'}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(Staff.staff_name).where(Staff.staff_id == staff_id)
         staff_exists = query.all()
@@ -35,7 +35,7 @@ def search_course_finished(staff_id: Union[str, None] = None):
 @staff_urls.get('/search_course_open_this semester', summary='search course open for this semester(available_course)')
 def search_course_this_semester(staff_id: Union[str, None] = None):
     if staff_id is None:
-        return {'msg': 'staff_id can not be None type.'}
+        return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
         query = conn.query(Staff.staff_name).where(Staff.staff_id == staff_id)
         staff_exists = query.all()
@@ -84,8 +84,8 @@ class ScoreInfo(BaseModel):
 
 @staff_urls.post('/give_score', summary='give score to student(change ended_course)')
 def give_score(score_info: ScoreInfo, staff_id: Union[str, None] = None):
-    if score_info.student_id is None:
-        return {'msg': 'no score entered.'}
+    if score_info.student_id is None or score_info.semester is None or score_info.course_id is None:
+        return {'msg': 'not enough information.'}
     elif type(score_info.student_id) == str:
         with Session(bind=engine) as conn:
             query = conn.query(EndedCourse.student_id) \

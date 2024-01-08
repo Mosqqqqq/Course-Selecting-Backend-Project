@@ -28,6 +28,7 @@ class UpdateInfoStudent(BaseModel):
     student_name: Union[str, None] = None
     sex: Union[str, None] = None
     grade: Union[int, None] = None
+    pwd: Union[str, None] = None
 
 
 class UpdateInfoStaff(BaseModel):

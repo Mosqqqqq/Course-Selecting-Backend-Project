@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy import create_engine, insert
 from sqlalchemy.orm import Session
-from database.models5 import *
+from database.models6 import *
 from apps.tools import *
 from apps.root.updateinfo_root import *
 
@@ -105,10 +105,13 @@ def insert_student(student_info: UpdateInfoStudent):
                                  None, None))
         if len(query.all()) >= 1:
             return {'msg': f'failed to insert, student_id {query.all()[0][0]} already exists.'}
+        encryption_key = open('./apps/login/pwd.key', 'rb').read()
+        encrypted_str = encrypt_string(student_info.student_id, encryption_key)
         insert_query = insert(Student).values(
             [get_update_dict(Student.__table__.columns.keys(),
                              [student_info.student_id, student_info.major_id, student_info.dept_id,
-                              student_info.class_id, student_info.student_name, student_info.sex, student_info.grade])])
+                              student_info.class_id, student_info.student_name, student_info.sex, student_info.grade,
+                              None, None, encrypted_str])])
         try:
             conn.execute(insert_query)
             conn.commit()
