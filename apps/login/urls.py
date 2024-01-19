@@ -6,7 +6,7 @@ from apps.tools import *
 from typing import Union
 
 login_urls = APIRouter()
-engine = create_engine(url='mysql://root:zsqlmm@localhost/my_school')
+engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
 encryption_key = open('./apps/login/pwd.key', 'rb').read()
 
 

@@ -6,7 +6,7 @@ from apps.tools import *
 from apps.root.updateinfo_root import *
 
 root_urls_delete = APIRouter()
-engine = create_engine(url='mysql://root:zsqlmm@localhost/my_school')
+engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
 
 
 @root_urls_delete.delete('/delete_dept', summary='delete dept')

@@ -1,6 +1,7 @@
 from sqlalchemy import and_
 from cryptography.fernet import Fernet
 
+SQL_PWD = 'zsqlmm'
 
 def generate_key():
     return Fernet.generate_key()

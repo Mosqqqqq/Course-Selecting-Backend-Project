@@ -7,7 +7,7 @@ from database.models6 import *
 from apps.tools import *
 
 staff_urls = APIRouter()
-engine = create_engine(url='mysql://root:zsqlmm@localhost/my_school')
+engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
 
 
 @staff_urls.get('/search_course_finished', summary='search finished course(ended_course)')
