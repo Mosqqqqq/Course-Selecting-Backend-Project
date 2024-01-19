@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from apps.student.urls import student_urls
 from apps.staff.urls import staff_urls
 from apps.root.update_urls import root_urls_update
@@ -9,6 +11,19 @@ from apps.login.urls import login_urls
 import uvicorn
 
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(student_urls, prefix='/student', tags=['api for student users'])
 app.include_router(staff_urls, prefix='/staff', tags=['api for staff users'])
