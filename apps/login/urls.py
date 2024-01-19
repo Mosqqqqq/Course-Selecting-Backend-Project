@@ -16,6 +16,8 @@ def student_login(student_id: Union[str, None] = None, pwd: Union[str, None] = N
         return {'msg': 'not enough information.', 'pass': 0}
     with Session(bind=engine) as conn:
         query = conn.query(Student.pwd).where(get_where_conditions(Student.__table__.columns.values(), student_id))
+        if len(query.all()) == 0:
+            return {'msg': 'student not exist.'}
         check_str = decrypt_string(query.all()[0][0], encryption_key)
         if str(check_str) == pwd:
             return {'msg': 'correct pwd.', 'pass': 1}
@@ -29,6 +31,8 @@ def staff_login(staff_id: Union[str, None] = None, pwd: Union[str, None] = None)
         return {'msg': 'not enough information.', 'pass': 0}
     with Session(bind=engine) as conn:
         query = conn.query(Staff.pwd).where(get_where_conditions(Staff.__table__.columns.values(), staff_id))
+        if len(query.all()) == 0:
+            return {'msg': 'staff not exist.'}
         check_str = decrypt_string(query.all()[0][0], encryption_key)
         if str(check_str) == pwd:
             return {'msg': 'correct pwd.', 'pass': 1}
