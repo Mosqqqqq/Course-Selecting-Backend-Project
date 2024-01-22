@@ -39,6 +39,12 @@ class UpdateInfoStaff(BaseModel):
     date_of_birth: Union[str, None] = None
     ranks: Union[str, None] = None
     salary: Union[float, None] = None
+    pwd: Union[str, None] = None
+
+
+class UpdateInfoRoot(BaseModel):
+    root_id: Union[str, None] = None
+    pwd: Union[str, None] = None
 
 
 class UpdateInfoAllCourse(BaseModel):

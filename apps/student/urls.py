@@ -3,7 +3,7 @@ from typing import Union, List
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text, insert, delete
 from sqlalchemy.orm import Session
-from database.models6 import *
+from database.models7 import *
 from apps.tools import *
 
 student_urls = APIRouter()

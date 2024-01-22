@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy import create_engine, update, delete, insert
 from sqlalchemy.orm import Session
-from database.models6 import *
+from database.models7 import *
 from apps.tools import *
 from apps.root.updateinfo_root import *
 
@@ -74,11 +74,11 @@ def update_student(update_info: UpdateInfoStudent, student_id: Union[str, None] 
     if student_id is None:
         return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
-        query = conn.query(Student.student_id).where(Student.student_id == update_info.student_id)
+        query = conn.query(Student.student_id).where(Student.student_id == student_id)
         if len(query.all()) == 0:
             return {'msg': 'student_id does not exists.'}
         encryption_key = open('./apps/login/pwd.key', 'rb').read()
-        encrypted_str = encrypt_string(update_info.student_id, encryption_key)
+        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
         query = update(Student).where(
             get_where_conditions(Student.__table__.columns.values(), student_id)) \
             .values(**get_update_dict(list(Student.__table__.columns.keys()),
@@ -108,15 +108,39 @@ def update_staff(update_info: UpdateInfoStaff, staff_id: Union[str, None] = None
     if staff_id is None:
         return {'msg': 'not enough information.'}
     with Session(bind=engine) as conn:
-        query = conn.query(Staff.staff_id).where(Staff.staff_id == update_info.staff_id)
+        query = conn.query(Staff.staff_id).where(Staff.staff_id == staff_id)
         if len(query.all()) == 0:
             return {'msg': 'staff_id does not exists.'}
+        encryption_key = open('./apps/login/pwd.key', 'rb').read()
+        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
         query = update(Staff).where(
             get_where_conditions(Staff.__table__.columns.values(), staff_id)) \
             .values(**get_update_dict(list(Staff.__table__.columns.keys()),
                                       [update_info.staff_id, update_info.dept_id, update_info.staff_name,
                                        update_info.sex, update_info.date_of_birth, update_info.ranks,
-                                       update_info.salary]))
+                                       update_info.salary, encrypted_str]))
+        try:
+            conn.execute(query)
+            conn.commit()
+        except Exception as e:
+            return {'msg': str(e)}
+        return {'msg': 'success'}
+
+
+@root_urls_update.put('/update_root', summary='update root')
+def update_root(update_info: UpdateInfoRoot, root_id: Union[str, None] = None):
+    if root_id is None:
+        return {'msg': 'not enough information.'}
+    with Session(bind=engine) as conn:
+        query = conn.query(Root.root_id).where(Root.root_id == root_id)
+        if len(query.all()) == 0:
+            return {'msg': 'root_id does not exists.'}
+        encryption_key = open('./apps/login/pwd.key', 'rb').read()
+        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
+        query = update(Root).where(
+            get_where_conditions(Root.__table__.columns.values(), root_id)) \
+            .values(**get_update_dict(list(Root.__table__.columns.keys()),
+                                      [update_info.root_id, encrypted_str]))
         try:
             conn.execute(query)
             conn.commit()

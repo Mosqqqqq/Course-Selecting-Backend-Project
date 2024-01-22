@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, update
 from sqlalchemy.orm import Session
-from database.models5 import *
+from database.models7 import *
 from apps.tools import *
 
 engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
@@ -23,6 +23,18 @@ with Session(bind=engine) as conn:
     for tup in query.all():
         encrypted_str = encrypt_string(tup[0], encryption_key)
         query = update(Staff).where(get_where_conditions(Staff.__table__.columns.values(), tup[0])).values(
+            **get_update_dict(['pwd'], [encrypted_str]))
+        try:
+            conn.execute(query)
+            conn.commit()
+        except Exception as e:
+            print(e)
+
+with Session(bind=engine) as conn:
+    query = conn.query(Root.root_id)
+    for tup in query.all():
+        encrypted_str = encrypt_string(tup[0], encryption_key)
+        query = update(Root).where(get_where_conditions(Root.__table__.columns.values(), tup[0])).values(
             **get_update_dict(['pwd'], [encrypted_str]))
         try:
             conn.execute(query)
