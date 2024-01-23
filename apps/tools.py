@@ -1,7 +1,10 @@
 from sqlalchemy import and_
 from cryptography.fernet import Fernet
+import pandas as pd
+import io
 
 SQL_PWD = 'zsqlmm'
+
 
 def generate_key():
     return Fernet.generate_key()
@@ -51,3 +54,11 @@ def get_update_dict(col_name_list, update_info_list):
         if info is not None:
             dict_[name] = info
     return dict_
+
+
+def generate_excel_content(data: pd.DataFrame):
+    df = pd.DataFrame(data)
+    buffer = io.BytesIO()
+    df.to_excel(buffer, index=False)
+    buffer.seek(0)
+    return buffer

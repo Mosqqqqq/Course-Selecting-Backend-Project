@@ -1,10 +1,12 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from typing import Union, List
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text, insert, delete
 from sqlalchemy.orm import Session
 from database.models7 import *
 from apps.tools import *
+from sqlalchemy import and_
 
 student_urls = APIRouter()
 engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
@@ -47,8 +49,10 @@ def get_schedule(sno: Union[str, None] = None):
             return {'msg': 'Student does not exist.'}
         query = conn.query(SelectedCourseNow.course_id, AllCourse.course_name, SelectedCourseNow.semester,
                            SelectedCourseNow.staff_id, Staff.staff_name, SelectedCourseNow.class_time,
-                           AvailableCourse.class_place).join(AvailableCourse,
-                                                             AvailableCourse.course_id == SelectedCourseNow.course_id).join(
+                           AvailableCourse.class_place) \
+            .join(AvailableCourse,
+                  and_(AvailableCourse.course_id == SelectedCourseNow.course_id, AvailableCourse.class_time ==
+                       SelectedCourseNow.class_time)).join(
             AllCourse, AllCourse.course_id == SelectedCourseNow.course_id).join(Staff,
                                                                                 Staff.staff_id == SelectedCourseNow.staff_id).where(
             SelectedCourseNow.student_id == sno)
@@ -94,9 +98,40 @@ def get_score(sno: Union[str, None] = None):
         student_exists = query.all()
         if len(student_exists) == 0:
             return {'msg': 'Student does not exist.'}
-        query = conn.query(Student.gpa_total, Student.gpa_this).where(get_where_conditions(Student.__table__.columns.values(), sno))
+        query = conn.query(Student.gpa_total, Student.gpa_this).where(
+            get_where_conditions(Student.__table__.columns.values(), sno))
     return {'gpa_this': query.all()[0][1], 'gpa_total': query.all()[0][0]}
 
+
+@student_urls.get('/get_schedule_excel', summary='get schedule excel')
+def download_schedule_excel(sno: Union[str, None] = None):
+    if sno is None:
+        return {'msg': 'not enough information.'}
+    with Session(bind=engine) as conn:
+        query = conn.query(Student.student_id).where(Student.student_id == sno)
+        student_exists = query.all()
+        if len(student_exists) == 0:
+            return {'msg': 'Student does not exist.'}
+        query = conn.query(SelectedCourseNow.course_id, AllCourse.course_name, SelectedCourseNow.semester,
+                           SelectedCourseNow.staff_id, Staff.staff_name, SelectedCourseNow.class_time,
+                           AvailableCourse.class_place) \
+            .join(AvailableCourse,
+                  and_(AvailableCourse.course_id == SelectedCourseNow.course_id, AvailableCourse.class_time ==
+                       SelectedCourseNow.class_time)).join(
+            AllCourse, AllCourse.course_id == SelectedCourseNow.course_id).join(Staff,
+                                                                                Staff.staff_id == SelectedCourseNow.staff_id).where(
+            SelectedCourseNow.student_id == sno)
+        ret_tuple_list = query.all()
+        ret_json = get_empty_json('course_id', 'course_name', 'semester', 'staff_id', 'staff_name', 'class_time',
+                                  'class_place')
+        for tup in ret_tuple_list:
+            for item, key in zip(tup, ret_json.keys()):
+                ret_json[key].append(item)
+
+    excel_content = generate_excel_content(data=ret_json)
+    return StreamingResponse(io.BytesIO(excel_content.read()),
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": "attachment;filename=schedule.xlsx"})
 
 
 # @student_urls.get('/get_score/{mode}', summary='get score')
@@ -159,24 +194,26 @@ class CourseInfo(BaseModel):
 @student_urls.post('/insert_course', summary='insert course(change selected_course_now)')
 def insert_course(course_info: CourseInfo, sno: Union[str, None] = None):
     if sno is None:
-        return {'msg': 'not enough information.'}
+        return {'msg': '学生号不能为空'}
     with Session(bind=engine) as conn:
         query = conn.query(AvailableCourse.course_id).where(
             AvailableCourse.course_id == course_info.course_id and AvailableCourse.staff_id == course_info.staff_id
             and AvailableCourse.class_time == course_info.class_time)
         course_exist = query.all()
         if len(course_exist) == 0:
-            return {'msg': 'Course not available.'}
+            return {'msg': '本学期未开设本课程'}
         query = conn.query(SelectedCourseNow.course_id).where(
             SelectedCourseNow.student_id == sno).where(SelectedCourseNow.course_id == course_info.course_id)
         course_selected = query.all()
         # print("!", len(course_selected), course_selected)
         if len(course_selected) > 0:
-            return {'msg': 'course already selected.'}
-        query = conn.query(SelectedCourseNow.course_id).where(SelectedCourseNow.class_time == course_info.class_time)
+            return {'msg': '本课程已选'}
+        query = conn.query(SelectedCourseNow.course_id).where(
+            get_where_conditions(SelectedCourseNow.__table__.columns.values(), sno, None, None, None,
+                                 course_info.class_time))
         time_conflict = query.all()
         if len(time_conflict) > 0:
-            return {'msg': 'exist time conflict.'}
+            return {'msg': '课时冲突'}
         insert_query = insert(SelectedCourseNow).values(
             [{'student_id': sno, 'semester': course_info.semester, 'course_id': course_info.course_id,
               'staff_id': course_info.staff_id, 'class_time': course_info.class_time}])
@@ -186,7 +223,7 @@ def insert_course(course_info: CourseInfo, sno: Union[str, None] = None):
         except Exception as e:
             print(e)
             return {'msg': e}
-    return {'msg': 'success'}
+    return {'msg': '选课成功'}
 
 
 @student_urls.delete('/delete_course', summary='delete course(change selected_course_now)')

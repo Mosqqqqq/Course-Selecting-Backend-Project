@@ -77,8 +77,10 @@ def update_student(update_info: UpdateInfoStudent, student_id: Union[str, None] 
         query = conn.query(Student.student_id).where(Student.student_id == student_id)
         if len(query.all()) == 0:
             return {'msg': 'student_id does not exists.'}
-        encryption_key = open('./apps/login/pwd.key', 'rb').read()
-        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
+        encrypted_str = None
+        if update_info.pwd is not None:
+            encryption_key = open('./apps/login/pwd.key', 'rb').read()
+            encrypted_str = encrypt_string(update_info.pwd, encryption_key)
         query = update(Student).where(
             get_where_conditions(Student.__table__.columns.values(), student_id)) \
             .values(**get_update_dict(list(Student.__table__.columns.keys()),
@@ -111,8 +113,10 @@ def update_staff(update_info: UpdateInfoStaff, staff_id: Union[str, None] = None
         query = conn.query(Staff.staff_id).where(Staff.staff_id == staff_id)
         if len(query.all()) == 0:
             return {'msg': 'staff_id does not exists.'}
-        encryption_key = open('./apps/login/pwd.key', 'rb').read()
-        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
+        encrypted_str = None
+        if update_info.pwd is not None:
+            encryption_key = open('./apps/login/pwd.key', 'rb').read()
+            encrypted_str = encrypt_string(update_info.pwd, encryption_key)
         query = update(Staff).where(
             get_where_conditions(Staff.__table__.columns.values(), staff_id)) \
             .values(**get_update_dict(list(Staff.__table__.columns.keys()),
@@ -135,8 +139,10 @@ def update_root(update_info: UpdateInfoRoot, root_id: Union[str, None] = None):
         query = conn.query(Root.root_id).where(Root.root_id == root_id)
         if len(query.all()) == 0:
             return {'msg': 'root_id does not exists.'}
-        encryption_key = open('./apps/login/pwd.key', 'rb').read()
-        encrypted_str = encrypt_string(update_info.pwd, encryption_key)
+        encrypted_str = None
+        if update_info.pwd is not None:
+            encryption_key = open('./apps/login/pwd.key', 'rb').read()
+            encrypted_str = encrypt_string(update_info.pwd, encryption_key)
         query = update(Root).where(
             get_where_conditions(Root.__table__.columns.values(), root_id)) \
             .values(**get_update_dict(list(Root.__table__.columns.keys()),
@@ -185,7 +191,7 @@ def update_available_course(update_info: UpdateInfoAvailableCourse, course_id: U
             get_where_conditions(AvailableCourse.__table__.columns.values(), course_id, semester, staff_id, class_time)) \
             .values(**get_update_dict(list(AvailableCourse.__table__.columns.keys()),
                                       [update_info.course_id, update_info.semester, update_info.staff_id,
-                                       update_info.class_time, update_info.class_time, update_info.class_place]))
+                                       update_info.class_time, update_info.class_place]))
         try:
             conn.execute(query)
             conn.commit()

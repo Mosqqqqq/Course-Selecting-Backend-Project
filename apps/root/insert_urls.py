@@ -223,11 +223,11 @@ def insert_selected_course_now(selected_course_now_info: UpdateInfoSelectedCours
         query = conn.query(Student.student_id).where(
             get_where_conditions(Student.__table__.columns.values(), selected_course_now_info.student_id))
         if len(query.all()) == 0:
-            return {'msg': f'failed to insert, student_id {selected_course_now_info.student_id} does not exist.'}
+            return {'msg': f'学生号 {selected_course_now_info.student_id} 不存在.'}
         query = conn.query(Staff.staff_id).where(
             get_where_conditions(Staff.__table__.columns.values(), selected_course_now_info.staff_id))
         if len(query.all()) == 0:
-            return {'msg': f'failed to insert, staff_id {selected_course_now_info.staff_id} does not exist.'}
+            return {'msg': f'教师号 {selected_course_now_info.staff_id} 不存在.'}
         query = conn.query(AvailableCourse.course_id, AvailableCourse.semester, AvailableCourse.staff_id,
                            AvailableCourse.class_time).where(
             get_where_conditions(AvailableCourse.__table__.columns.values(), selected_course_now_info.course_id,
@@ -235,16 +235,13 @@ def insert_selected_course_now(selected_course_now_info: UpdateInfoSelectedCours
                                  selected_course_now_info.class_time))
         if len(query.all()) == 0:
             return {
-                'msg': f'failed to insert, (course_id {selected_course_now_info.course_id}'
-                       f' semester {selected_course_now_info.semester} staff_id {selected_course_now_info.staff_id}'
-                       f' class_time {selected_course_now_info.class_time}) does not exists.'}
+                'msg': f'本课程未开设'}
         query = conn.query(SelectedCourseNow.student_id, SelectedCourseNow.semester, SelectedCourseNow.course_id).where(
             get_where_conditions(SelectedCourseNow.__table__.columns.values(), selected_course_now_info.student_id,
                                  selected_course_now_info.semester, selected_course_now_info.course_id))
         if len(query.all()) >= 1:
-            return {
-                'msg': f'failed to insert, (student_id {query.all()[0][0]} semester {query.all()[0][1]} '
-                       f'course_id {query.all()[0][2]}) already exists.'}
+            return {'msg': f'该学生已选该课'}
+
         insert_query = insert(SelectedCourseNow).values(
             [get_update_dict(SelectedCourseNow.__table__.columns.keys(),
                              [selected_course_now_info.student_id, selected_course_now_info.semester,
