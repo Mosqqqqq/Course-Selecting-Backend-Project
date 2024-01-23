@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database.models7 import *
 from apps.tools import *
 from sqlalchemy import and_
+import re
 
 student_urls = APIRouter()
 engine = create_engine(url='mysql://root:' + SQL_PWD + '@localhost/my_school')
@@ -127,8 +128,21 @@ def download_schedule_excel(sno: Union[str, None] = None):
         for tup in ret_tuple_list:
             for item, key in zip(tup, ret_json.keys()):
                 ret_json[key].append(item)
-
-    excel_content = generate_excel_content(data=ret_json)
+    course_names_list = ret_json['course_name']
+    course_day_list = [item[0:2] for item in ret_json['class_time']]
+    course_time_list = [item[2:] for item in ret_json['class_time']]
+    df_schdule = pd.DataFrame(
+        data={'时间': ['1-2节', '3-4节', '5-6节', '7-8节', '9-10节', '11-12节'],
+              '周一': [None, None, None, None, None, None], '周二': [None, None, None, None, None, None],
+              '周三': [None, None, None, None, None, None], '周四': [None, None, None, None, None, None],
+              '周五': [None, None, None, None, None, None]})
+    # df_schdule.set_index('time', inplace=True)
+    dict_time2i = dict()
+    for i, time in enumerate(df_schdule['时间']):
+        dict_time2i[time] = i
+    for cname, cday, ctime in zip(course_names_list, course_day_list, course_time_list):
+        df_schdule.loc[dict_time2i[ctime], cday] = cname
+    excel_content = generate_excel_content(data=df_schdule)
     return StreamingResponse(io.BytesIO(excel_content.read()),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": "attachment;filename=schedule.xlsx"})

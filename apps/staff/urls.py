@@ -66,11 +66,36 @@ def search_name_list(staff_id: Union[str, None] = None, course_id: Union[str, No
             .where(SelectedCourseNow.course_id == course_id) \
             .where(SelectedCourseNow.class_time == class_time)
         ret_tuple_list = query.all()
-        ret_json = get_empty_json('student_id', 'student_name')
+        ret_json = get_empty_json('student_id', 'student_name', 'score_norm', 'score_test', 'score_total')
         for tup in ret_tuple_list:
             for item, key in zip(tup, ret_json.keys()):
                 ret_json[key].append(item)
+        for sno in ret_json['student_id']:
+            query = conn.query(EndedCourse.score_norm, EndedCourse.score_test, EndedCourse.total_score).where(
+                get_where_conditions(EndedCourse.__table__.columns.values(), sno, None, course_id, staff_id))
+            if len(query.all()) == 0:
+                ret_json['score_norm'].append('未填写')
+                ret_json['score_test'].append('未填写')
+                ret_json['score_total'].append('未填写')
+            else:
+                ret_json['score_norm'].append(query.all()[-1][0])
+                ret_json['score_test'].append(query.all()[-1][1])
+                ret_json['score_total'].append(query.all()[-1][2])
         return ret_json
+
+
+@staff_urls.get('/cal_gpa', summary='calculate gpa')
+def cal_gpa():
+    with engine.connect() as conn:
+        try:
+            call_pro = '''
+    SET SQL_SAFE_UPDATES = 0;
+    call cal_gpa();
+    SET SQL_SAFE_UPDATES = 1;'''
+            conn.execute(call_pro)
+        except Exception as e:
+            return {'msg': str(e)}
+    return {'msg': '考分计算完毕'}
 
 
 class ScoreInfo(BaseModel):
@@ -160,4 +185,3 @@ def give_score(score_info: ScoreInfo, staff_id: Union[str, None] = None):
         return response_json
     else:
         return {'msg': 'received wrong request json.'}
-
